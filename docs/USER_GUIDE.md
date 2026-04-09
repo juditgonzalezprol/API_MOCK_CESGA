@@ -55,10 +55,9 @@ curl https://api-mock-cesga.onrender.com/proteins/samples
 curl -X POST https://api-mock-cesga.onrender.com/jobs/submit \
   -H "Content-Type: application/json" \
   -d '{
-    "job_name": "mi-primer-job",
-    "fasta_sequence": ">sp|P0CG47|UBB Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
+    "fasta_sequence": ">sp|P0CG47|UBQ_HUMAN Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
     "fasta_filename": "ubiquitin.fasta",
-    "num_gpus": 1,
+    "gpus": 1,
     "memory_gb": 16
   }'
 ```
@@ -95,10 +94,9 @@ echo "Enviando job..."
 RESPONSE=$(curl -s -X POST "$BASE/jobs/submit" \
   -H "Content-Type: application/json" \
   -d '{
-    "job_name": "test",
-    "fasta_sequence": ">sp|P0CG47|UBB Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
+    "fasta_sequence": ">sp|P0CG47|UBQ_HUMAN Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
     "fasta_filename": "ubiquitin.fasta",
-    "num_gpus": 1,
+    "gpus": 1,
     "memory_gb": 16
   }')
 JOB_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
@@ -132,10 +130,9 @@ BASE = "https://api-mock-cesga.onrender.com"
 
 # 1. Enviar job
 resp = requests.post(f"{BASE}/jobs/submit", json={
-    "job_name": "test-python",
-    "fasta_sequence": ">sp|P0CG47|UBB Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
+    "fasta_sequence": ">sp|P0CG47|UBQ_HUMAN Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
     "fasta_filename": "ubiquitin.fasta",
-    "num_gpus": 1,
+    "gpus": 1,
     "memory_gb": 16
 })
 job_id = resp.json()["job_id"]
@@ -170,33 +167,6 @@ if status == "COMPLETED":
     acc = requests.get(f"{BASE}/jobs/{job_id}/accounting").json()
     print(f"CPU-hours: {acc['accounting']['cpu_hours']:.4f}")
 ```
-
----
-
-## Resultados del testing (10 abril 2026)
-
-Test completo ejecutado contra `https://api-mock-cesga.onrender.com`. Todos los endpoints respondieron correctamente.
-
-| Endpoint | Método | Status | Tiempo |
-|---|---|---|---|
-| `/health` | GET | ✅ 200 | 230 ms |
-| `/` | GET | ✅ 200 | 113 ms |
-| `/proteins/stats` | GET | ✅ 200 | 185 ms |
-| `/proteins/` | GET | ✅ 200 | 120 ms |
-| `/proteins/samples` | GET | ✅ 200 | 119 ms |
-| `/proteins/ubiquitin` | GET | ✅ 200 | 125 ms |
-| `/jobs/submit` | POST | ✅ 201 | 124 ms |
-| `/jobs/` | GET | ✅ 200 | 119 ms |
-| `/jobs/{id}/status` | GET | ✅ 200 | 125 ms |
-| `/jobs/{id}/outputs` | GET | ✅ 200 | 205 ms |
-| `/jobs/{id}/accounting` | GET | ✅ 200 | 166 ms |
-| `/docs` | GET | ✅ 200 | 118 ms |
-
-**Observaciones:**
-- Los jobs completan en ~5 segundos de tiempo simulado
-- La respuesta de `/outputs` incluye fichero PDB completo, mmCIF, matriz PAE, pLDDT por residuo, datos biológicos y contabilidad de recursos
-- Sin cold-start durante el test (servidor ya estaba activo)
-- La primera petición tras 15 min de inactividad puede tardar ~30 s
 
 ---
 
@@ -350,23 +320,6 @@ Usuario real en CESGA:                    Esta API (simulador):
 ```
 
 La diferencia es que en el simulador todo ocurre en segundos y sin necesitar cuenta en el CESGA. Los datos de estructura son sintéticos (para proteínas conocidas usa estructuras reales de la PDB; para el resto genera coordenadas simuladas), pero el formato de la respuesta, los campos, y el flujo son idénticos a lo que esperaría un frontend real.
-
----
-
-## ¿Qué es esta API?
-
-Es un **simulador del supercomputador CESGA Finis Terrae III** orientado a desarrollo y pruebas. Imita el comportamiento de un sistema de colas HPC (tipo Slurm) para predicción de estructuras proteicas con AlphaFold2, sin necesidad de acceso real al clúster.
-
-### Flujo completo
-
-```
-1. Envías una secuencia FASTA  →  POST /jobs/submit
-2. El job entra en cola        →  status: PENDING
-3. Comienza a ejecutarse       →  status: RUNNING   (~5 s)
-4. Termina con resultados      →  status: COMPLETED (~10 s)
-5. Descargas los outputs       →  GET /jobs/{id}/outputs
-6. Consultas el gasto de HPC   →  GET /jobs/{id}/accounting
-```
 
 ---
 
@@ -800,7 +753,13 @@ curl http://localhost:8000/proteins/calmodulin
 
 ## 5. Secuencias FASTA listas para copiar
 
-Usa estas secuencias directamente como valor del campo `fasta_sequence`.
+> **Recomendación:** La forma más fiable de obtener la secuencia exacta de cualquier proteína es llamar al endpoint:
+> ```bash
+> curl https://api-mock-cesga.onrender.com/proteins/ubiquitin
+> ```
+> El campo `fasta_ready` del response es exactamente el valor que tienes que pasar como `fasta_sequence`. Así garantizas que la proteína será identificada y obtendrás `protein_metadata` real en los outputs.
+
+Las secuencias de abajo son copy-paste directamente funcionales para las proteínas más usadas:
 
 ### Ubiquitin (76 aa) — la más pequeña, ideal para pruebas rápidas
 ```
@@ -1033,14 +992,16 @@ Si aparece un 500 inesperado, el body incluirá el error detallado:
 ### Opción A: con curl (terminal)
 
 ```bash
+BASE="https://api-mock-cesga.onrender.com"
+
 # 1. Ver qué proteínas hay disponibles
-curl http://localhost:8000/proteins/
+curl "$BASE/proteins/"
 
 # 2. Obtener la secuencia de calmodulin lista para usar
-curl http://localhost:8000/proteins/calmodulin | python3 -m json.tool
+curl "$BASE/proteins/calmodulin" | python3 -m json.tool
 
 # 3. Enviar el job
-JOB=$(curl -s -X POST http://localhost:8000/jobs/submit \
+JOB=$(curl -s -X POST "$BASE/jobs/submit" \
   -H "Content-Type: application/json" \
   -d '{
     "fasta_sequence": ">sp|P0DP23|CALM1_HUMAN Calmodulin-1\nMADQLTEEQIAEFKEAFSLFDKDGDGTITTKELGTVMRSLGQNPTEAELQDMINEVDADGNGTIDFPEFLTMMARKMKDTDSEEEIREAFRVFDKDGNGYISAAELRHVMTNLGEKLTDEEVDEMIREADIDGDGQVNYEEFVQMMTAK",
@@ -1054,14 +1015,14 @@ JOB_ID=$(echo $JOB | python3 -c "import json,sys; print(json.load(sys.stdin)['jo
 
 # 4. Esperar a que complete (poll cada 2 segundos)
 while true; do
-  STATUS=$(curl -s http://localhost:8000/jobs/$JOB_ID/status | python3 -c "import json,sys; print(json.load(sys.stdin)['status'])")
+  STATUS=$(curl -s "$BASE/jobs/$JOB_ID/status" | python3 -c "import json,sys; print(json.load(sys.stdin)['status'])")
   echo "Estado: $STATUS"
   if [ "$STATUS" = "COMPLETED" ] || [ "$STATUS" = "FAILED" ]; then break; fi
   sleep 2
 done
 
 # 5. Obtener outputs
-curl -s http://localhost:8000/jobs/$JOB_ID/outputs | python3 -m json.tool > resultados.json
+curl -s "$BASE/jobs/$JOB_ID/outputs" | python3 -m json.tool > resultados.json
 
 # 6. Extraer el fichero PDB para visualizar en PyMOL / Mol*
 python3 -c "
@@ -1077,7 +1038,7 @@ print('Solubilidad:', d['biological_data']['solubility_score'])
 "
 
 # 7. Contabilidad de recursos
-curl http://localhost:8000/jobs/$JOB_ID/accounting | python3 -m json.tool
+curl "$BASE/jobs/$JOB_ID/accounting" | python3 -m json.tool
 ```
 
 ---
@@ -1089,7 +1050,7 @@ import requests
 import time
 import json
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://api-mock-cesga.onrender.com"
 
 # 1. Ver proteínas disponibles
 proteins = requests.get(f"{BASE_URL}/proteins/").json()
@@ -1097,12 +1058,12 @@ print(f"Proteínas en catálogo: {len(proteins)}")
 for p in proteins[:5]:
     print(f"  {p['protein_id']:20s} | {p['length']} aa | {p['protein_name']}")
 
-# 2. Obtener secuencia de ubiquitin
+# 2. Obtener secuencia exacta de ubiquitin (fasta_ready es el campo que hay que usar)
 ubiquitin = requests.get(f"{BASE_URL}/proteins/ubiquitin").json()
 fasta = ubiquitin["fasta_ready"]
 print("\nFASTA listo:", fasta[:60])
 
-# 3. Enviar job
+# 3. Enviar job (campos: fasta_sequence, fasta_filename, gpus, cpus, memory_gb)
 response = requests.post(f"{BASE_URL}/jobs/submit", json={
     "fasta_sequence": fasta,
     "fasta_filename": "ubiquitin.fasta",
@@ -1136,24 +1097,24 @@ if status == "COMPLETED":
 
     # Ver confianza
     conf = outputs["structural_data"]["confidence"]
-    print(f"\n📊 pLDDT medio: {conf['plddt_mean']:.1f}")
-    print(f"   Histograma: {conf['plddt_histogram']}")
+    print(f"\npLDDT medio: {conf['plddt_mean']:.1f}")
+    print(f"Histograma: {conf['plddt_histogram']}")
 
     # Ver datos biológicos
     bio = outputs["biological_data"]
-    print(f"   Solubilidad: {bio['solubility_score']:.1f} ({bio['solubility_prediction']})")
-    print(f"   Inestabilidad: {bio['instability_index']:.1f} ({bio['stability_status']})")
+    print(f"Solubilidad: {bio['solubility_score']:.1f} ({bio['solubility_prediction']})")
+    print(f"Inestabilidad: {bio['instability_index']:.1f} ({bio['stability_status']})")
 
     # Metadata de la proteína identificada
     meta = outputs.get("protein_metadata")
     if meta:
-        print(f"\n🔬 Proteína identificada: {meta['protein_name']}")
-        print(f"   UniProt: {meta['uniprot_id']} | PDB: {meta['pdb_id']}")
+        print(f"\nProteína identificada: {meta['protein_name']}")
+        print(f"UniProt: {meta['uniprot_id']} | PDB: {meta['pdb_id']}")
 
     # Contabilidad
     acc = requests.get(f"{BASE_URL}/jobs/{job_id}/accounting").json()
     accounting = acc["accounting"]
-    print(f"\n💻 Recursos usados:")
+    print(f"\nRecursos usados:")
     print(f"   CPU-hours:  {accounting['cpu_hours']:.4f}")
     print(f"   GPU-hours:  {accounting['gpu_hours']:.4f}")
     print(f"   Wall time:  {accounting['total_wall_time_seconds']} s")
@@ -1164,10 +1125,10 @@ if status == "COMPLETED":
 ### Opción C: con JavaScript / fetch
 
 ```javascript
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "https://api-mock-cesga.onrender.com";
 
 async function runFullWorkflow() {
-  // 1. Enviar job
+  // 1. Enviar job (campos obligatorios: fasta_sequence, fasta_filename)
   const submitResp = await fetch(`${BASE_URL}/jobs/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1230,3 +1191,16 @@ GET  /proteins/stats           →  Estadísticas de la base de datos
 GET  /proteins/samples         →  Secuencias de ejemplo listas
 GET  /proteins/{protein_id}    →  Detalles + FASTA de una proteína
 ```
+
+### Campos de `POST /jobs/submit` — resumen rápido
+
+| Campo | Requerido | Tipo | Notas |
+|---|---|---|---|
+| `fasta_sequence` | ✅ | string | Debe empezar con `>` |
+| `fasta_filename` | ✅ | string | p.ej. `mi_proteina.fasta` |
+| `gpus` | ❌ | int (0–4) | Default: 0 |
+| `cpus` | ❌ | int (1–64) | Default: 1 |
+| `memory_gb` | ❌ | float (0–256) | Default: 4.0 |
+| `max_runtime_seconds` | ❌ | int (60–86400) | Default: 3600 |
+
+> ⚠️ No existe un campo `job_name` ni `num_gpus`. Usar `gpus` para las GPUs.
