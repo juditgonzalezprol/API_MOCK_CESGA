@@ -1,9 +1,202 @@
 # CESGA Supercomputer Simulator — Guía de Usuario
 
-> **Base URL:** `http://localhost:8000`
-> **Documentación interactiva (Swagger):** `http://localhost:8000/docs`
-> **Schema OpenAPI:** `http://localhost:8000/openapi.json`
+> ### 🌐 API desplegada — acceso público
+> **URL pública:** `https://api-mock-cesga.onrender.com`
+> **Documentación interactiva (Swagger):** `https://api-mock-cesga.onrender.com/docs`
 > **Sin autenticación requerida** — todos los endpoints son públicos
+>
+> > **Nota cold-start:** La API está en el tier gratuito de Render. Si lleva más de 15 minutos sin recibir peticiones, el primer request puede tardar ~30 segundos en responder mientras el servidor despierta. Los siguientes son instantáneos.
+
+> ### 💻 Ejecución local (desarrollo)
+> **Base URL:** `http://localhost:8000`
+> **Docs locales:** `http://localhost:8000/docs`
+
+---
+
+## Acceso rápido — cómo hacer tu primera petición
+
+La forma más rápida de probar la API sin instalar nada es desde el navegador o con `curl`. No necesitas cuenta ni token.
+
+### Desde el navegador
+
+Abre directamente:
+
+```
+https://api-mock-cesga.onrender.com/docs
+```
+
+Verás la interfaz Swagger — cada endpoint tiene un botón **"Try it out"** que permite ejecutar peticiones sin escribir código.
+
+---
+
+### Desde la terminal (curl)
+
+**1. Verificar que la API está activa:**
+```bash
+curl https://api-mock-cesga.onrender.com/health
+```
+Respuesta esperada:
+```json
+{"status":"healthy","service":"CESGA Supercomputer Simulator","version":"1.0.0"}
+```
+
+**2. Ver el catálogo de proteínas disponibles:**
+```bash
+curl https://api-mock-cesga.onrender.com/proteins/
+```
+
+**3. Obtener secuencias FASTA de ejemplo listas para usar:**
+```bash
+curl https://api-mock-cesga.onrender.com/proteins/samples
+```
+
+**4. Enviar un job de predicción de estructura:**
+```bash
+curl -X POST https://api-mock-cesga.onrender.com/jobs/submit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_name": "mi-primer-job",
+    "fasta_sequence": ">sp|P0CG47|UBB Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
+    "fasta_filename": "ubiquitin.fasta",
+    "num_gpus": 1,
+    "memory_gb": 16
+  }'
+```
+Respuesta:
+```json
+{"job_id":"job_xxxxxxxxxxxx","status":"PENDING","message":"Job submitted successfully."}
+```
+
+**5. Consultar el estado del job** (sustituye `JOB_ID` por el que te devolvió el paso anterior):
+```bash
+curl https://api-mock-cesga.onrender.com/jobs/JOB_ID/status
+```
+
+**6. Obtener los resultados** (una vez que el estado sea `COMPLETED`, ~5-10 segundos):
+```bash
+curl https://api-mock-cesga.onrender.com/jobs/JOB_ID/outputs
+```
+
+**7. Ver la contabilidad de recursos HPC:**
+```bash
+curl https://api-mock-cesga.onrender.com/jobs/JOB_ID/accounting
+```
+
+---
+
+### Flujo completo en un script bash
+
+```bash
+#!/bin/bash
+BASE="https://api-mock-cesga.onrender.com"
+
+# 1. Enviar job
+echo "Enviando job..."
+RESPONSE=$(curl -s -X POST "$BASE/jobs/submit" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_name": "test",
+    "fasta_sequence": ">sp|P0CG47|UBB Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
+    "fasta_filename": "ubiquitin.fasta",
+    "num_gpus": 1,
+    "memory_gb": 16
+  }')
+JOB_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
+echo "Job ID: $JOB_ID"
+
+# 2. Esperar hasta COMPLETED
+STATUS="PENDING"
+while [ "$STATUS" != "COMPLETED" ] && [ "$STATUS" != "FAILED" ]; do
+  sleep 3
+  STATUS=$(curl -s "$BASE/jobs/$JOB_ID/status" | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
+  echo "Estado: $STATUS"
+done
+
+# 3. Obtener resultados
+echo "Outputs:"
+curl -s "$BASE/jobs/$JOB_ID/outputs" | python3 -m json.tool | head -40
+
+echo "Accounting:"
+curl -s "$BASE/jobs/$JOB_ID/accounting" | python3 -m json.tool
+```
+
+---
+
+### Desde Python
+
+```python
+import requests
+import time
+
+BASE = "https://api-mock-cesga.onrender.com"
+
+# 1. Enviar job
+resp = requests.post(f"{BASE}/jobs/submit", json={
+    "job_name": "test-python",
+    "fasta_sequence": ">sp|P0CG47|UBB Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
+    "fasta_filename": "ubiquitin.fasta",
+    "num_gpus": 1,
+    "memory_gb": 16
+})
+job_id = resp.json()["job_id"]
+print(f"Job enviado: {job_id}")
+
+# 2. Polling
+while True:
+    status = requests.get(f"{BASE}/jobs/{job_id}/status").json()["status"]
+    print(f"Estado: {status}")
+    if status in ("COMPLETED", "FAILED", "CANCELLED"):
+        break
+    time.sleep(3)
+
+# 3. Resultados
+if status == "COMPLETED":
+    outputs = requests.get(f"{BASE}/jobs/{job_id}/outputs").json()
+    plddt   = outputs["structural_data"]["confidence"]["plddt_mean"]
+    sol     = outputs["biological_data"]["solubility_score"]
+    meta    = outputs.get("protein_metadata")
+    print(f"pLDDT medio: {plddt:.1f}")
+    print(f"Solubilidad: {sol:.1f}/100")
+    if meta:
+        print(f"Proteína identificada: {meta['protein_name']} ({meta['uniprot_id']})")
+
+    # Guardar el fichero PDB
+    pdb_content = outputs["structural_data"]["pdb_file"]
+    with open(f"{job_id}.pdb", "w") as f:
+        f.write(pdb_content)
+    print(f"Estructura guardada en {job_id}.pdb")
+
+    # Contabilidad
+    acc = requests.get(f"{BASE}/jobs/{job_id}/accounting").json()
+    print(f"CPU-hours: {acc['accounting']['cpu_hours']:.4f}")
+```
+
+---
+
+## Resultados del testing (10 abril 2026)
+
+Test completo ejecutado contra `https://api-mock-cesga.onrender.com`. Todos los endpoints respondieron correctamente.
+
+| Endpoint | Método | Status | Tiempo |
+|---|---|---|---|
+| `/health` | GET | ✅ 200 | 230 ms |
+| `/` | GET | ✅ 200 | 113 ms |
+| `/proteins/stats` | GET | ✅ 200 | 185 ms |
+| `/proteins/` | GET | ✅ 200 | 120 ms |
+| `/proteins/samples` | GET | ✅ 200 | 119 ms |
+| `/proteins/ubiquitin` | GET | ✅ 200 | 125 ms |
+| `/jobs/submit` | POST | ✅ 201 | 124 ms |
+| `/jobs/` | GET | ✅ 200 | 119 ms |
+| `/jobs/{id}/status` | GET | ✅ 200 | 125 ms |
+| `/jobs/{id}/outputs` | GET | ✅ 200 | 205 ms |
+| `/jobs/{id}/accounting` | GET | ✅ 200 | 166 ms |
+| `/docs` | GET | ✅ 200 | 118 ms |
+
+**Observaciones:**
+- Los jobs completan en ~5 segundos de tiempo simulado
+- La respuesta de `/outputs` incluye fichero PDB completo, mmCIF, matriz PAE, pLDDT por residuo, datos biológicos y contabilidad de recursos
+- Sin cold-start durante el test (servidor ya estaba activo)
+- La primera petición tras 15 min de inactividad puede tardar ~30 s
 
 ---
 
@@ -179,15 +372,19 @@ Es un **simulador del supercomputador CESGA Finis Terrae III** orientado a desar
 
 ## Índice
 
-0. [Conceptos previos](#conceptos-previos)
-1. [Endpoints de Jobs](#1-endpoints-de-jobs)
-2. [Endpoints de Catálogo de Proteínas](#2-endpoints-de-catálogo-de-proteínas)
-3. [Campos de request y response explicados](#3-campos-de-request-y-response-explicados)
-4. [Catálogo de proteínas disponibles](#4-catálogo-de-proteínas-disponibles)
-5. [Secuencias FASTA listas para copiar](#5-secuencias-fasta-listas-para-copiar)
-6. [Entendiendo los outputs: pLDDT y PAE](#6-entendiendo-los-outputs-plddt-y-pae)
-7. [Errores comunes y cómo resolverlos](#7-errores-comunes-y-cómo-resolverlos)
-8. [Flujo completo de ejemplo](#8-flujo-completo-de-ejemplo)
+0. [Acceso rápido](#acceso-rápido--cómo-hacer-tu-primera-petición)
+1. [Conceptos previos](#conceptos-previos)
+2. [Endpoints de Jobs](#1-endpoints-de-jobs)
+3. [Endpoints de Catálogo de Proteínas](#2-endpoints-de-catálogo-de-proteínas)
+4. [Campos de request y response explicados](#3-campos-de-request-y-response-explicados)
+5. [Catálogo de proteínas disponibles](#4-catálogo-de-proteínas-disponibles)
+6. [Secuencias FASTA listas para copiar](#5-secuencias-fasta-listas-para-copiar)
+7. [Entendiendo los outputs: pLDDT y PAE](#6-entendiendo-los-outputs-plddt-y-pae)
+8. [Errores comunes y cómo resolverlos](#7-errores-comunes-y-cómo-resolverlos)
+9. [Flujo completo de ejemplo](#8-flujo-completo-de-ejemplo)
+
+> Los ejemplos de código en las secciones siguientes usan `http://localhost:8000` (desarrollo local).
+> Para la API pública, sustituye por `https://api-mock-cesga.onrender.com`.
 
 ---
 
