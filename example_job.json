@@ -1,0 +1,8 @@
+{
+  "fasta_sequence": ">sp|P69905|HBA_HUMAN Hemoglobin subunit alpha\nMVLSPADKTNVKAA\nWGKVGAHAGEYGA\nEALERMFLSFPTT",
+  "fasta_filename": "hemoglobin.fasta",
+  "gpus": 1,
+  "cpus": 8,
+  "memory_gb": 32.0,
+  "max_runtime_seconds": 3600
+}

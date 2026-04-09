@@ -1,0 +1,23 @@
+{
+  "identified_protein": "insulin_human",
+  "uniprot_id": "P01308",
+  "pdb_id": "4MIF",
+  "protein_name": "Insulin",
+  "organism": "Homo sapiens",
+  "description": "Insulin is a peptide hormone produced by beta cells of the pancreatic islets. It regulates glucose levels in blood.",
+  "known_structures": [
+    {
+      "pdb_id": "4MIF",
+      "method": "X-ray",
+      "resolution": 1.0,
+      "publication": "Derewenda et al. (2012)"
+    },
+    {
+      "pdb_id": "1GUJ",
+      "method": "X-ray",
+      "resolution": 1.5,
+      "publication": "Ciszak et al. (1995)"
+    }
+  ],
+  "data_source": "precomputed_database"
+}

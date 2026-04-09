@@ -1,0 +1,38 @@
+{
+  "solubility_score": 78.5,
+  "solubility_prediction": "soluble",
+  "instability_index": 29.4,
+  "stability_status": "stable",
+  "extinction_coefficient_reduced": 1490,
+  "extinction_coefficient_disulfide": 1490,
+  "aromaticity": 4.18,
+  "instability_classification": "Stable",
+  "gravy": -0.522,
+  "amino_acid_composition": {
+    "A": 3,
+    "R": 1,
+    "N": 1,
+    "D": 1,
+    "C": 0,
+    "E": 3,
+    "Q": 2,
+    "G": 5,
+    "H": 1,
+    "I": 3,
+    "L": 2,
+    "K": 7,
+    "M": 1,
+    "F": 1,
+    "P": 1,
+    "S": 1,
+    "T": 4,
+    "W": 0,
+    "Y": 1,
+    "V": 6
+  },
+  "toxicity_alerts": [],
+  "allergenicity_alerts": [
+    "Potential cross-reactivity with ubiquitin-related proteins"
+  ],
+  "source": "real_data"
+}

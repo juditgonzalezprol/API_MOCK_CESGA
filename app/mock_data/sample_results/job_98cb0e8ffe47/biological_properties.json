@@ -1,0 +1,28 @@
+{
+  "solubility_score": 75.16593705234727,
+  "solubility_prediction": "soluble",
+  "instability_index": 24.1,
+  "stability_status": "stable",
+  "toxicity_alerts": [
+    "Potential signal peptide detected (Kozak sequence motif)",
+    "Potential protease cleavage site (dibasic motif) detected",
+    "6 cysteine residues detected - may form disulfide bonds"
+  ],
+  "allergenicity_alerts": [
+    "Protein length > 100 aa (typical allergen size range)"
+  ],
+  "secondary_structure_prediction": {
+    "helix_percent": 36.4,
+    "strand_percent": 9.1,
+    "coil_percent": 54.5
+  },
+  "sequence_properties": {
+    "length": 110,
+    "molecular_weight_kda": 12.1,
+    "positive_charges": 7,
+    "negative_charges": 10,
+    "cysteine_residues": 6,
+    "aromatic_residues": 9
+  },
+  "source": "synthetic_prediction"
+}

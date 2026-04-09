@@ -1,0 +1,24 @@
+{
+  "solubility_score": 73.80306945251249,
+  "solubility_prediction": "soluble",
+  "instability_index": 19.03,
+  "stability_status": "stable",
+  "toxicity_alerts": [
+    "Potential signal peptide detected (Kozak sequence motif)"
+  ],
+  "allergenicity_alerts": [],
+  "secondary_structure_prediction": {
+    "helix_percent": 20.0,
+    "strand_percent": 10.0,
+    "coil_percent": 70.0
+  },
+  "sequence_properties": {
+    "length": 20,
+    "molecular_weight_kda": 2.2,
+    "positive_charges": 2,
+    "negative_charges": 2,
+    "cysteine_residues": 1,
+    "aromatic_residues": 3
+  },
+  "source": "synthetic_prediction"
+}

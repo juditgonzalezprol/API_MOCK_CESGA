@@ -1,0 +1,166 @@
+{
+  "metadata": {
+    "description": "Ready-to-submit CESGA script examples for API integration",
+    "version": "1.0",
+    "format": "JSON API payloads",
+    "note": "Copy JSON objects directly to submit to /api/v1/jobs endpoint"
+  },
+
+  "example_1_alphafold2": {
+    "description": "AlphaFold2 protein structure prediction",
+    "endpoint": "POST /api/v1/jobs",
+    "payload": {
+      "job_name": "alphafold2_predict_protein",
+      "job_type": "COMPUTE",
+      "script_content": "#!/bin/bash\n#SBATCH --job-name=alphafold2_prediction\n#SBATCH --ntasks=1\n#SBATCH --cpus-per-task=8\n#SBATCH --mem=32G\n#SBATCH --time=02:00:00\n#SBATCH --partition=gpu\n#SBATCH --gres=gpu:1\n#SBATCH --output=alphafold_%j.out\n\nmodule load CESGA/2023\nmodule load python/3.10\nmodule load cuda/11.8\n\ncat > input_protein.fasta << 'EOF'\n>sp|P69905|HBA_HUMAN hemoglobin subunit alpha\nVLSPADKTNVKAAVDVWFEASPMFRAVFDAKYVMVQVSKLSQKFHVQDNCNLLLKVTKI\nAYSVLSALRQQLQVKGHGVQVGIVGAKVQA\nEOF\n\nOUTPUT_DIR=\"/home/user/af2_results_$(date +%s)\"\nmkdir -p ${OUTPUT_DIR}\n\npython -m alphafold2 --input_fasta=input_protein.fasta --output_dir=${OUTPUT_DIR} --max_template_date=2023-12-01\n\necho \"AlphaFold2 completed\"\n",
+      "script_type": "ALPHAFOLD",
+      "resources": {
+        "cpus": 8,
+        "gpus": 1,
+        "memory_gb": 32,
+        "wall_time_hours": 2
+      },
+      "modules": ["CESGA/2023", "python/3.10", "cuda/11.8"]
+    }
+  },
+
+  "example_2_blast": {
+    "description": "BLAST homology search against UniProt",
+    "endpoint": "POST /api/v1/jobs",
+    "payload": {
+      "job_name": "blast_homology_search",
+      "job_type": "COMPUTE",
+      "script_content": "#!/bin/bash\n#SBATCH --job-name=blast_search\n#SBATCH --ntasks=1\n#SBATCH --cpus-per-task=16\n#SBATCH --mem=32G\n#SBATCH --time=01:30:00\n#SBATCH --partition=cpu\n\nmodule load CESGA/2023\nmodule load blast/2.14.0\n\ncat > query.fasta << 'EOF'\n>unknown_protein\nMVLSPADKTNVKAAVDVWFEASPMFRAVFDAKYVMVQVSKLSQKFHVQDNCNLLLKVTKI\nAYSVLSALRQQLQVKGHGVQVGIVGAKVQA\nEOF\n\npsiblast -query query.fasta -db /databases/swissprot -num_iterations=3 -num_threads=16 -evalue=1e-5 -outfmt='6 qseqid sseqid pident evalue' -out blast_results.txt\n\necho \"BLAST search completed\"\n",
+      "script_type": "BLAST",
+      "resources": {
+        "cpus": 16,
+        "gpus": 0,
+        "memory_gb": 32,
+        "wall_time_hours": 1.5
+      },
+      "modules": ["CESGA/2023", "blast/2.14.0"]
+    }
+  },
+
+  "example_3_msa": {
+    "description": "Multiple Sequence Alignment using MAFFT",
+    "endpoint": "POST /api/v1/jobs",
+    "payload": {
+      "job_name": "protein_msa_alignment",
+      "job_type": "COMPUTE",
+      "script_content": "#!/bin/bash\n#SBATCH --job-name=msa\n#SBATCH --ntasks=1\n#SBATCH --cpus-per-task=12\n#SBATCH --mem=16G\n#SBATCH --time=01:00:00\n#SBATCH --partition=cpu\n\nmodule load CESGA/2023\nmodule load mafft/7.515\n\ncat > proteins.fasta << 'EOF'\n>human_ubiquitin\nMQIFVKTLTGKTITLEVESPDTIENVALVENAKAKTLVKILSQDPEAGSFSQRNETAVKQ\n>mouse_ubiquitin\nMQIFVKALTGKTITLEVESPDTIENVALVENAKAKTLVKILSQDPEAGSFSQRNETAVKQ\n>yeast_ubiquitin\nMQTFTAATLEVVAPVNGKTVTVEKPTKTEVTAEVALTAVK\nEOF\n\nmafft --auto --thread=-1 proteins.fasta > msa_results.fasta\n\nesl-reformat stockholm msa_results.fasta > msa_results.sto\necho \"MSA completed\"\n",
+      "script_type": "MSA",
+      "resources": {
+        "cpus": 12,
+        "gpus": 0,
+        "memory_gb": 16,
+        "wall_time_hours": 1
+      },
+      "modules": ["CESGA/2023", "mafft/7.515"]
+    }
+  },
+
+  "example_4_gromacs": {
+    "description": "Molecular Dynamics with GROMACS",
+    "endpoint": "POST /api/v1/jobs",
+    "payload": {
+      "job_name": "gromacs_md_simulation",
+      "job_type": "COMPUTE",
+      "script_content": "#!/bin/bash\n#SBATCH --job-name=md_gromacs\n#SBATCH --ntasks=1\n#SBATCH --cpus-per-task=8\n#SBATCH --mem=64G\n#SBATCH --time=04:00:00\n#SBATCH --partition=gpu\n#SBATCH --gres=gpu:2\n\nmodule load CESGA/2023\nmodule load gromacs/2023.1\nmodule load cuda/11.8\n\nWORKDIR=$(pwd)\necho \"[$(date)] Starting MD simulation in ${WORKDIR}\"\n\ngmx pdb2gmx -f lysozyme.pdb -o lysozyme.gro -p topol.top -ff amber99sb-ildn -water tip3p -ignh\n\necho \"Energy minimization...\"\ngmx grompp -f minim.mdp -c lysozyme.gro -p topol.top -o em.tpr\ngmx mdrun -deffnm em -v -c em.gro\n\necho \"NVT equilibration...\"\ngmx grompp -f nvt.mdp -c em.gro -p topol.top -o nvt.tpr\ngmx mdrun -deffnm nvt -v -c nvt.gro\n\necho \"NPT equilibration...\"\ngmx grompp -f npt.mdp -c nvt.gro -p topol.top -o npt.tpr\ngmx mdrun -deffnm npt -v -c npt.gro\n\necho \"Production MD run...\"\ngmx grompp -f md.mdp -c npt.gro -p topol.top -o md.tpr\ngmx mdrun -deffnm md -v -c md.gro\n\necho \"Analysis...\"\necho '1 1' | gmx rms -f md.xtc -s md.tpr -o rmsd.xvg\n\necho \"MD simulation completed\"\n",
+      "script_type": "GROMACS",
+      "resources": {
+        "cpus": 8,
+        "gpus": 2,
+        "memory_gb": 64,
+        "wall_time_hours": 4
+      },
+      "modules": ["CESGA/2023", "gromacs/2023.1", "cuda/11.8"]
+    }
+  },
+
+  "example_5_hmmer": {
+    "description": "Protein domain identification with HMMER",
+    "endpoint": "POST /api/v1/jobs",
+    "payload": {
+      "job_name": "hmmer_domain_scan",
+      "job_type": "COMPUTE",
+      "script_content": "#!/bin/bash\n#SBATCH --job-name=hmmscan\n#SBATCH --ntasks=1\n#SBATCH --cpus-per-task=8\n#SBATCH --mem=16G\n#SBATCH --time=00:45:00\n#SBATCH --partition=cpu\n\nmodule load CESGA/2023\nmodule load hmmer/3.3.2\n\ncat > protein.fasta << 'EOF'\n>kinase_query\nMSVAGFDVKKRYGGGFKPYQLDHIGGINGNRGSQDPLAQVKGNTYLVLVDVGTIYMHSHP\nTSGHQRLRPHKKEIKPSHPSVVSPVVKLKPK\nEOF\n\nhmmscan --cpu 8 -o domains.txt --tblout domains.tbl /databases/Pfam-A.hmm protein.fasta\n\necho \"HMMER scan completed\"\n",
+      "script_type": "HMMER",
+      "resources": {
+        "cpus": 8,
+        "gpus": 0,
+        "memory_gb": 16,
+        "wall_time_hours": 0.75
+      },
+      "modules": ["CESGA/2023", "hmmer/3.3.2"]
+    }
+  },
+
+  "example_6_pipeline": {
+    "description": "Complete bioinformatics analysis pipeline",
+    "endpoint": "POST /api/v1/jobs",
+    "payload": {
+      "job_name": "complete_protein_pipeline",
+      "job_type": "COMPUTE",
+      "script_content": "#!/bin/bash\nset -e\n#SBATCH --job-name=protein_pipeline\n#SBATCH --ntasks=1\n#SBATCH --cpus-per-task=16\n#SBATCH --mem=64G\n#SBATCH --time=06:00:00\n#SBATCH --partition=gpu\n#SBATCH --gres=gpu:1\n\nmodule load CESGA/2023\nmodule load python/3.11\nmodule load ncbi-toolkit/2.14.0\nmodule load hmmer/3.3.2\n\necho \"===== Protein Analysis Pipeline =====\"\necho \"Started: $(date)\"\n\nINPUT=\"input_protein.fasta\"\ncat > ${INPUT} << 'EOF'\n>unknown_sequence\nMVLSPADKTNVKAAVDVWFEASPMFRAVFDAKYVMVQVSKLSQKFHVQDNCNLLLKVTKI\nAYSVLSALRQQLQVKGHGVQVGIVGAKVQA\nEOF\n\necho \"[Step 1/4] BLAST homology search...\"\nblastp -query ${INPUT} -db /databases/swissprot -num_threads 16 -evalue 1e-5 -outfmt '6' -out blast_results.txt\n\necho \"[Step 2/4] Domain identification...\"\nhmmscan --cpu 16 -o domains.txt /databases/Pfam-A.hmm ${INPUT}\n\necho \"[Step 3/4] Secondary structure prediction...\"\npython << 'PYTHON'\nprint('Secondary structure prediction running...')\nprint('Alpha-helix: 45%')\nprint('Beta-sheet: 25%')\nprint('Coil: 30%')\nPYTHON\n\necho \"[Step 4/4] Summary report...\"\necho \"Pipeline completed successfully at $(date)\"\n",
+      "script_type": "CUSTOM",
+      "resources": {
+        "cpus": 16,
+        "gpus": 1,
+        "memory_gb": 64,
+        "wall_time_hours": 6
+      },
+      "modules": ["CESGA/2023", "python/3.11", "ncbi-toolkit/2.14.0", "hmmer/3.3.2"]
+    }
+  },
+
+  "curl_examples": {
+    "description": "How to submit scripts to the API using curl",
+
+    "example_1": {
+      "description": "Submit AlphaFold2 job",
+      "command": "curl -X POST http://localhost:8000/api/v1/jobs \\",
+      "headers": "-H 'Content-Type: application/json' \\",
+      "data": "-d '{\"job_name\": \"alphafold2_predict_protein\", \"job_type\": \"COMPUTE\", \"script_type\": \"ALPHAFOLD\", \"script_content\": \"#!/bin/bash\\n#SBATCH --partition=gpu\\n...\"}'",
+      "response": {
+        "job_id": "job_1234567890",
+        "status": "VALIDATED",
+        "message": "Script validated and queued for processing"
+      }
+    },
+
+    "example_2": {
+      "description": "Submit BLAST job",
+      "command": "curl -X POST http://localhost:8000/api/v1/jobs \\",
+      "data": "-d @- << 'JSON'\n{\"job_name\": \"blast_search\", \"script_type\": \"BLAST\", \"script_content\": \"...\"}\nJSON"
+    },
+
+    "python_example": {
+      "description": "Submit using Python requests library",
+      "code": "import requests\n\nscript = '''#!/bin/bash\n#SBATCH --job-name=blast_search\n...\n'''\n\npayload = {\n    'job_name': 'blast_search',\n    'job_type': 'COMPUTE',\n    'script_type': 'BLAST',\n    'script_content': script,\n    'resources': {\n        'cpus': 16,\n        'gpus': 0,\n        'memory_gb': 32,\n        'wall_time_hours': 1.5\n    }\n}\n\nresponse = requests.post(\n    'http://localhost:8000/api/v1/jobs',\n    json=payload\n)\n\nprint(response.json())\n"
+    }
+  },
+
+  "validation_checklist": {
+    "before_submission": [
+      "✓ Script starts with #!/bin/bash",
+      "✓ Has #SBATCH directives before commands",
+      "✓ CPU count <= 128",
+      "✓ GPU count <= 4",
+      "✓ Memory <= 256GB",
+      "✓ Wall time <= 24 hours",
+      "✓ All modules are recognized",
+      "✓ Script type matches content",
+      "✓ No missing dependencies",
+      "✓ Proper error handling"
+    ],
+    "script_types_supported": [
+      "ALPHAFOLD - Structure prediction",
+      "BLAST - Homology search",
+      "GROMACS - Molecular dynamics",
+      "HMMER - Domain identification",
+      "MSA - Multiple sequence alignment",
+      "CUSTOM - Other bioinformatics tools"
+    ]
+  }
+}

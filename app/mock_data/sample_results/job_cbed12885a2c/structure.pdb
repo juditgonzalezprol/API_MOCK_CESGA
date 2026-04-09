@@ -1,0 +1,10 @@
+HEADER    SIMULATED ALPHAFOLD STRUCTURE
+TITLE     AlphaFold2 Simulation for 10 residues
+REMARK   1 REFERENCE 1
+REMARK   2 RESOLUTION.    NONE.
+ATOM             X       Y       Z     CONF
+ATOM      1  CA  ALA    1      10.000   0.000   0.000  1.00 53.30           C
+ATOM      2  CA  ALA    2       9.950   1.500   0.998  1.00 92.19           C
+ATOM      3  CA  ALA    3       9.801   3.000   1.987  1.00 57.67           C
+ATOM      4  CA  ALA    4       9.553   4.500   2.955  1.00 80.56           C
+END

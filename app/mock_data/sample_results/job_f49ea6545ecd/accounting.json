@@ -1,0 +1,9 @@
+{
+  "cpu_hours": 0.003531931972087788,
+  "gpu_hours": 0.0012632638790602694,
+  "memory_gb_hours": 0.004285885792526349,
+  "total_wall_time_seconds": 5,
+  "cpu_efficiency_percent": 50.85982039806415,
+  "memory_efficiency_percent": 77.14594426547427,
+  "gpu_efficiency_percent": 90.9549992923394
+}

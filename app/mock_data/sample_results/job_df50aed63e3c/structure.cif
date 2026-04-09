@@ -1,0 +1,78 @@
+data_simulated_structure
+_entry.id   SIM001
+_struct.title   'AlphaFold2 Simulation for 60 residues'
+_struct.pdbx_descriptor   'AlphaFold2 predicted model'
+
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.B_iso_or_equiv
+ATOM      1 C CA ALA A 1    1   10.000    0.000    0.000  63.25
+ATOM      2 C CA ALA A 1    2    9.950    1.500    0.998  66.52
+ATOM      3 C CA ALA A 1    3    9.801    3.000    1.987  86.76
+ATOM      4 C CA ALA A 1    4    9.553    4.500    2.955  65.95
+ATOM      5 C CA ALA A 1    5    9.211    6.000    3.894  94.04
+ATOM      6 C CA ALA A 1    6    8.776    7.500    4.794  59.83
+ATOM      7 C CA ALA A 1    7    8.253    9.000    5.646  92.88
+ATOM      8 C CA ALA A 1    8    7.648   10.500    6.442  94.27
+ATOM      9 C CA ALA A 1    9    6.967   12.000    7.174  73.49
+ATOM     10 C CA ALA A 1   10    6.216   13.500    7.833  94.28
+ATOM     11 C CA ALA A 1   11    5.403   15.000    8.415  92.28
+ATOM     12 C CA ALA A 1   12    4.536   16.500    8.912  94.06
+ATOM     13 C CA ALA A 1   13    3.624   18.000    9.320  92.42
+ATOM     14 C CA ALA A 1   14    2.675   19.500    9.636  79.53
+ATOM     15 C CA ALA A 1   15    1.700   21.000    9.854  80.73
+ATOM     16 C CA ALA A 1   16    0.707   22.500    9.975  60.74
+ATOM     17 C CA ALA A 1   17   -0.292   24.000    9.996  55.70
+ATOM     18 C CA ALA A 1   18   -1.288   25.500    9.917  91.08
+ATOM     19 C CA ALA A 1   19   -2.272   27.000    9.738  61.03
+ATOM     20 C CA ALA A 1   20   -3.233   28.500    9.463  59.20
+ATOM     21 C CA ALA A 1   21   -4.161   30.000    9.093  64.13
+ATOM     22 C CA ALA A 1   22   -5.048   31.500    8.632  63.03
+ATOM     23 C CA ALA A 1   23   -5.885   33.000    8.085  91.00
+ATOM     24 C CA ALA A 1   24   -6.663   34.500    7.457  94.38
+ATOM     25 C CA ALA A 1   25   -7.374   36.000    6.755  87.25
+ATOM     26 C CA ALA A 1   26   -8.011   37.500    5.985  70.98
+ATOM     27 C CA ALA A 1   27   -8.569   39.000    5.155  66.35
+ATOM     28 C CA ALA A 1   28   -9.041   40.500    4.274  85.65
+ATOM     29 C CA ALA A 1   29   -9.422   42.000    3.350  55.60
+ATOM     30 C CA ALA A 1   30   -9.710   43.500    2.392  87.72
+ATOM     31 C CA ALA A 1   31   -9.900   45.000    1.411  50.13
+ATOM     32 C CA ALA A 1   32   -9.991   46.500    0.416  77.63
+ATOM     33 C CA ALA A 1   33   -9.983   48.000   -0.584  75.54
+ATOM     34 C CA ALA A 1   34   -9.875   49.500   -1.577  83.10
+ATOM     35 C CA ALA A 1   35   -9.668   51.000   -2.555  64.65
+ATOM     36 C CA ALA A 1   36   -9.365   52.500   -3.508  83.66
+ATOM     37 C CA ALA A 1   37   -8.968   54.000   -4.425  60.20
+ATOM     38 C CA ALA A 1   38   -8.481   55.500   -5.298  69.49
+ATOM     39 C CA ALA A 1   39   -7.910   57.000   -6.119  71.46
+ATOM     40 C CA ALA A 1   40   -7.259   58.500   -6.878  66.85
+ATOM     41 C CA ALA A 1   41   -6.536   60.000   -7.568  60.15
+ATOM     42 C CA ALA A 1   42   -5.748   61.500   -8.183  79.24
+ATOM     43 C CA ALA A 1   43   -4.903   63.000   -8.716  84.22
+ATOM     44 C CA ALA A 1   44   -4.008   64.500   -9.162  62.49
+ATOM     45 C CA ALA A 1   45   -3.073   66.000   -9.516  93.41
+ATOM     46 C CA ALA A 1   46   -2.108   67.500   -9.775  76.80
+ATOM     47 C CA ALA A 1   47   -1.122   69.000   -9.937  74.41
+ATOM     48 C CA ALA A 1   48   -0.124   70.500   -9.999  78.54
+ATOM     49 C CA ALA A 1   49    0.875   72.000   -9.962  88.06
+ATOM     50 C CA ALA A 1   50    1.865   73.500   -9.825  82.86
+ATOM     51 C CA ALA A 1   51    2.837   75.000   -9.589  58.22
+ATOM     52 C CA ALA A 1   52    3.780   76.500   -9.258  74.57
+ATOM     53 C CA ALA A 1   53    4.685   78.000   -8.835  54.35
+ATOM     54 C CA ALA A 1   54    5.544   79.500   -8.323  58.64
+ATOM     55 C CA ALA A 1   55    6.347   81.000   -7.728  60.44
+ATOM     56 C CA ALA A 1   56    7.087   82.500   -7.055  50.41
+ATOM     57 C CA ALA A 1   57    7.756   84.000   -6.313  90.29
+ATOM     58 C CA ALA A 1   58    8.347   85.500   -5.507  93.30
+ATOM     59 C CA ALA A 1   59    8.855   87.000   -4.646  94.73
+ATOM     60 C CA ALA A 1   60    9.275   88.500   -3.739  53.46

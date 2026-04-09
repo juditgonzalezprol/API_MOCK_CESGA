@@ -1,0 +1,19 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persiste la base de datos SQLite entre reinicios
+      - ./cesga_simulator.db:/app/cesga_simulator.db
+      # Persiste los resultados de jobs generados
+      - ./app/mock_data:/app/app/mock_data
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

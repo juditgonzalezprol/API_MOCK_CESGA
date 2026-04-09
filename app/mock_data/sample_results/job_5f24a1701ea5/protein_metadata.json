@@ -1,0 +1,10 @@
+{
+  "identified_protein": "PROT0001_HUMAN",
+  "uniprot_id": "P00001",
+  "pdb_id": "",
+  "protein_name": "Nucleoporin family protein 1",
+  "organism": "Homo sapiens",
+  "description": null,
+  "known_structures": [],
+  "data_source": "precomputed_database"
+}

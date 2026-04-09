@@ -1,0 +1,23 @@
+{
+  "identified_protein": "ubiquitin",
+  "uniprot_id": "P0CG47",
+  "pdb_id": "1UBQ",
+  "protein_name": "Ubiquitin",
+  "organism": "Homo sapiens",
+  "description": "Ubiquitin is a small regulatory protein found in almost all tissues of eukaryotic organisms. Its name comes from its ubiquitous nature.",
+  "known_structures": [
+    {
+      "pdb_id": "1UBQ",
+      "method": "NMR",
+      "resolution": null,
+      "publication": "Smith et al., Nature (1995)"
+    },
+    {
+      "pdb_id": "1UBA",
+      "method": "X-ray",
+      "resolution": 1.8,
+      "publication": "Cook et al., Nature (1987)"
+    }
+  ],
+  "data_source": "precomputed_database"
+}

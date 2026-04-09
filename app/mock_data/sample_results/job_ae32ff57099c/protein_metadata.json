@@ -1,0 +1,23 @@
+{
+  "identified_protein": "gfp",
+  "uniprot_id": "P42212",
+  "pdb_id": "1GFL",
+  "protein_name": "Green Fluorescent Protein (GFP)",
+  "organism": "Aequorea victoria",
+  "description": "Spontaneously fluorescent protein widely used as a reporter in cell biology. Chromophore formed autocatalytically from Ser65-Tyr66-Gly67. Nobel Prize in Chemistry 2008.",
+  "known_structures": [
+    {
+      "pdb_id": "1GFL",
+      "method": "X-ray",
+      "resolution": 1.9,
+      "publication": "Yang et al. (1996)"
+    },
+    {
+      "pdb_id": "2B3P",
+      "method": "X-ray",
+      "resolution": 1.35,
+      "publication": "Royant & Noirclerc-Savoye (2011)"
+    }
+  ],
+  "data_source": "precomputed_database"
+}
