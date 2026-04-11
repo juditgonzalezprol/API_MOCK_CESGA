@@ -32,7 +32,7 @@ class JobService:
     
     RESULTS_DIR = Path("app/mock_data/sample_results")
     PRECOMPUTED_DIR = Path("app/mock_data/precomputed")
-    REAL_STRUCTURES_DIR = Path("PBS_BIEN")
+    REAL_STRUCTURES_DIR = Path(__file__).parent.parent / "structures"
     
     def __init__(self):
         """Initialize service."""

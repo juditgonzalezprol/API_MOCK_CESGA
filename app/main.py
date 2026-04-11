@@ -144,8 +144,8 @@ app.add_middleware(
 app.include_router(jobs_router)
 app.include_router(proteins_router)
 
-# Serve CIF structure files from PBS_BIEN/
-_structures_dir = Path(__file__).parent.parent / "PBS_BIEN"
+# Serve CIF structure files from app/structures/
+_structures_dir = Path(__file__).parent / "structures"
 if _structures_dir.is_dir():
     app.mount("/structures", StaticFiles(directory=str(_structures_dir)), name="structures")
     logger.info(f"Serving CIF structures from {_structures_dir}")
