@@ -454,20 +454,13 @@ async function fetchOutputs(jobId) {
     b.textContent = data.logs; b.classList.add("visible");
   }
 
-  const uniprot = data.protein_metadata?.uniprot_id;
-  const cifFile = CIF_MAP[uniprot];
-  const pdbId   = PDB_MAP[uniprot];
-  const mockPdb = data.structural_data?.pdb_file;
+  const cif     = data.structural_data?.cif_file;
+  const pdb     = data.structural_data?.pdb_file;
   const conf    = data.structural_data?.confidence;
+  const isReal  = cif && cif.startsWith("data_");  // real CIF starts with "data_XXXX"
 
-  // Try real structure: local CIF → RCSB → AlphaFold DB
-  if (cifFile || pdbId || uniprot) {
-    const loaded = await tryRealStructure(cifFile, pdbId, uniprot);
-    if (loaded) { showMetrics(data); resetBtn(); return; }
-  }
-
-  // Fallback: render mock PDB from API
-  if (mockPdb) renderPDB(mockPdb, conf, false);
+  if (cif) renderStructure(cif, "cif", isReal);
+  else if (pdb) renderStructure(pdb, "pdb", false);
   showMetrics(data);
   resetBtn();
 }
@@ -532,8 +525,8 @@ function tryRealStructure(cifFile, pdbId, uniprotId) {
   });
 }
 
-// ── render PDB ─────────────────────────────────────────────────────────────
-function renderPDB(pdbText, confidence, isReal) {
+// ── render structure ────────────────────────────────────────────────────────
+function renderStructure(text, fmt, isReal) {
   document.getElementById("placeholder").style.display = "none";
   document.getElementById("toolbar").classList.add("visible");
   document.getElementById("legend").classList.add("visible");
@@ -542,7 +535,7 @@ function renderPDB(pdbText, confidence, isReal) {
   tag.classList.add("visible");
   if (isReal) {
     tag.classList.add("real");
-    tag.textContent = "● Estructura real · AlphaFold DB";
+    tag.textContent = "● Estructura experimental · RCSB PDB";
   } else {
     tag.textContent = "● Estructura simulada · CESGA API";
   }
@@ -551,7 +544,7 @@ function renderPDB(pdbText, confidence, isReal) {
   el.innerHTML = "";
   viewer3d = $3Dmol.createViewer(el, { backgroundColor: "0x08090d", antialias: true });
 
-  viewer3d.addModel(pdbText, "pdb");
+  viewer3d.addModel(text, fmt);
   applyStyle("cartoon");
   viewer3d.zoomTo();
   viewer3d.render();

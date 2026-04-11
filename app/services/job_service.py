@@ -14,12 +14,25 @@ from app.services.alphafold_service import get_alphafold_service
 
 logger = logging.getLogger(__name__)
 
+# UniProt ID → real CIF filename in PBS_BIEN/
+REAL_CIF_MAP = {
+    "P0CG47": "1UBQ.cif",  "P0DP23": "1CLL.cif",  "P62805": "3C9C.cif",
+    "P10599": "2TRX.cif",  "P99999": "1CGO.cif",  "P61769": "2D4F.cif",
+    "P01308": "3I40.cif",  "P61626": "8K8M.cif",  "P00695": "7XF6.cif",
+    "P61823": "1KF5.cif",  "P00571": "4AKE.cif",  "P00441": "5YTU.cif",
+    "P04746": "1B2Y.cif",  "P06431": "4H4F.cif",  "P69905": "1DKE.cif",
+    "P68871": "1BZ1.cif",  "P02144": "1MBN.cif",  "P02768": "1AO6.cif",
+    "P42212": "1GFL.cif",  "P12004": "1AXC.cif",  "P04637": "1TUP.cif",
+    "P00533": "2GS6.cif",
+}
+
 
 class JobService:
     """Service for managing jobs lifecycle."""
     
     RESULTS_DIR = Path("app/mock_data/sample_results")
     PRECOMPUTED_DIR = Path("app/mock_data/precomputed")
+    REAL_STRUCTURES_DIR = Path("PBS_BIEN")
     
     def __init__(self):
         """Initialize service."""
@@ -194,23 +207,23 @@ class JobService:
             
             # Try to identify if it's a known protein
             protein_info = self._identify_protein(job.fasta_sequence)
-            protein_name = protein_info[0] if protein_info else None
-            
-            # Generate or copy PDB structure
-            precomputed_pdb = self.PRECOMPUTED_DIR / f"{protein_name}.pdb"
-            if protein_info and precomputed_pdb.exists():
-                # Use precomputed PDB
-                pdb_content = precomputed_pdb.read_text()
+            # Use real CIF from PBS_BIEN if available, else generate synthetic
+            uniprot_id = protein_info[1].get("uniprot_id") if protein_info else None
+            real_cif_name = REAL_CIF_MAP.get(uniprot_id) if uniprot_id else None
+            real_cif_path = self.REAL_STRUCTURES_DIR / real_cif_name if real_cif_name else None
+
+            if real_cif_path and real_cif_path.exists():
+                logger.info(f"Using real CIF {real_cif_name} for job {job.id}")
+                cif_content = real_cif_path.read_text()
+                pdb_content = cif_content  # serve CIF as both fields; visualizer prefers cif_file
             else:
-                # Generate synthetic PDB
                 pdb_content = self.mock_service.generate_pdb_structure(job.fasta_sequence)
-            
+                cif_content = self.mock_service.generate_mmcif_structure(job.fasta_sequence)
+
             pdb_path = job_dir / "structure.pdb"
             pdb_path.write_text(pdb_content)
             job.output_pdb_path = str(pdb_path)
-            
-            # Generate mmCIF structure
-            cif_content = self.mock_service.generate_mmcif_structure(job.fasta_sequence)
+
             cif_path = job_dir / "structure.cif"
             cif_path.write_text(cif_content)
             job.output_cif_path = str(cif_path)
