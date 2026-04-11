@@ -14,7 +14,7 @@ for _logger_name in sqlalchemy_loggers:
 # Now import everything else
 import asyncio
 from contextlib import asynccontextmanager
-import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -144,10 +144,11 @@ app.add_middleware(
 app.include_router(jobs_router)
 app.include_router(proteins_router)
 
-# Serve local CIF structure files if the folder exists (local development only)
-_structures_dir = os.path.join(os.path.dirname(__file__), "..", "PBS_BIEN")
-if os.path.isdir(_structures_dir):
-    app.mount("/structures", StaticFiles(directory=_structures_dir), name="structures")
+# Serve CIF structure files from PBS_BIEN/
+_structures_dir = Path(__file__).parent.parent / "PBS_BIEN"
+if _structures_dir.is_dir():
+    app.mount("/structures", StaticFiles(directory=str(_structures_dir)), name="structures")
+    logger.info(f"Serving CIF structures from {_structures_dir}")
 
 
 # API metadata endpoints
