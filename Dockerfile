@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Código fuente
 COPY app/ ./app/
+COPY PBS_BIEN/ ./PBS_BIEN/
 COPY .env.example .env
 
 # Directorios de datos en tiempo de build
