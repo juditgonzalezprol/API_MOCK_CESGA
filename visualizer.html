@@ -457,7 +457,8 @@ async function fetchOutputs(jobId) {
   const cif     = data.structural_data?.cif_file;
   const pdb     = data.structural_data?.pdb_file;
   const conf    = data.structural_data?.confidence;
-  const isReal  = cif && cif.startsWith("data_");  // real CIF starts with "data_XXXX"
+  // Synthetic CIF starts with "data_simulated_structure"; real ones with "data_1UBQ", "data_1CLL", etc.
+  const isReal  = cif && cif.startsWith("data_") && !cif.startsWith("data_simulated");
 
   if (cif) renderStructure(cif, "cif", isReal);
   else if (pdb) renderStructure(pdb, "pdb", false);
@@ -545,7 +546,8 @@ function renderStructure(text, fmt, isReal) {
   viewer3d = $3Dmol.createViewer(el, { backgroundColor: "0x08090d", antialias: true });
 
   viewer3d.addModel(text, fmt);
-  applyStyle("cartoon");
+  // Synthetic CIF only has CA atoms — cartoon needs full backbone, use sphere instead
+  applyStyle(isReal ? "cartoon" : "stick");
   viewer3d.zoomTo();
   viewer3d.render();
   viewer3d.zoom(0.85, 500);
