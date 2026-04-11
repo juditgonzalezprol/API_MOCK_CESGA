@@ -303,10 +303,7 @@
 </div>
 
 <script>
-// Use local API (with CIF files) or remote Render
-const API = window.location.hostname === "localhost" || window.location.protocol === "file:"
-  ? "http://localhost:8000"
-  : "https://api-mock-cesga.onrender.com";
+const API = "https://api-mock-cesga.onrender.com";
 let viewer3d = null;
 let pollInterval = null;
 let currentStyle = "cartoon";
