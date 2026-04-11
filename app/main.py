@@ -14,9 +14,11 @@ for _logger_name in sqlalchemy_loggers:
 # Now import everything else
 import asyncio
 from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import engine, Base
@@ -71,6 +73,7 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
+    redirect_slashes=False,
     title=settings.api_title,
     version=settings.api_version,
     description="Mock simulator for CESGA Finis Terrae III supercomputer (Slurm-like interface)",
@@ -140,6 +143,11 @@ app.add_middleware(
 # Include routers
 app.include_router(jobs_router)
 app.include_router(proteins_router)
+
+# Serve local CIF structure files if the folder exists (local development only)
+_structures_dir = os.path.join(os.path.dirname(__file__), "..", "PBS_BIEN")
+if os.path.isdir(_structures_dir):
+    app.mount("/structures", StaticFiles(directory=_structures_dir), name="structures")
 
 
 # API metadata endpoints

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>LocalFold Visualizer</title>
+  <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+    header {
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid #1e2a3a;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #60a5fa; }
+    header span { font-size: 0.78rem; color: #475569; }
+
+    .layout { display: flex; height: calc(100vh - 58px); }
+
+    .panel {
+      width: 360px; min-width: 300px;
+      background: #161b27;
+      border-right: 1px solid #1e2a3a;
+      overflow-y: auto;
+      padding: 1.2rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+
+    label { font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 0.35rem; }
+
+    textarea {
+      width: 100%; height: 110px;
+      background: #0f1117; border: 1px solid #1e2a3a;
+      color: #e2e8f0; border-radius: 6px;
+      padding: 0.6rem; font-family: monospace; font-size: 0.78rem;
+      resize: vertical;
+    }
+    textarea:focus { outline: none; border-color: #3b82f6; }
+
+    .row { display: flex; gap: 0.6rem; }
+    .field { flex: 1; }
+    input[type=number] {
+      width: 100%; background: #0f1117; border: 1px solid #1e2a3a;
+      color: #e2e8f0; border-radius: 6px; padding: 0.45rem 0.6rem;
+      font-size: 0.82rem;
+    }
+    input[type=number]:focus { outline: none; border-color: #3b82f6; }
+
+    select {
+      width: 100%; background: #0f1117; border: 1px solid #1e2a3a;
+      color: #e2e8f0; border-radius: 6px; padding: 0.45rem 0.6rem;
+      font-size: 0.82rem; cursor: pointer;
+    }
+    select:focus { outline: none; border-color: #3b82f6; }
+
+    button.submit {
+      width: 100%; padding: 0.65rem;
+      background: #2563eb; color: white;
+      border: none; border-radius: 6px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    button.submit:hover { background: #1d4ed8; }
+    button.submit:disabled { background: #1e3a5f; color: #475569; cursor: not-allowed; }
+
+    .status-box {
+      background: #0f1117; border: 1px solid #1e2a3a;
+      border-radius: 6px; padding: 0.75rem;
+      font-size: 0.78rem; display: none;
+    }
+    .status-box.visible { display: block; }
+    .status-row { display: flex; justify-content: space-between; align-items: center; }
+    .badge {
+      display: inline-block; padding: 0.12rem 0.5rem;
+      border-radius: 99px; font-size: 0.7rem; font-weight: 600;
+    }
+    .badge.PENDING   { background: #1e3a5f; color: #93c5fd; }
+    .badge.RUNNING   { background: #14532d; color: #86efac; }
+    .badge.COMPLETED { background: #14532d; color: #4ade80; }
+    .badge.FAILED    { background: #450a0a; color: #fca5a5; }
+
+    .progress-bar { height: 3px; background: #1e2a3a; border-radius: 2px; margin-top: 0.5rem; overflow: hidden; }
+    .progress-fill { height: 100%; background: #3b82f6; border-radius: 2px; transition: width 0.4s; }
+
+    .metrics { display: none; flex-direction: column; gap: 0.75rem; }
+    .metrics.visible { display: flex; }
+
+    .card {
+      background: #0f1117; border: 1px solid #1e2a3a;
+      border-radius: 6px; padding: 0.75rem;
+    }
+    .card-title { font-size: 0.68rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; font-weight: 600; }
+
+    .plddt-score { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .plddt-sub { font-size: 0.7rem; color: #64748b; margin-top: 0.2rem; }
+
+    .seg-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 1px; margin-top: 0.5rem; }
+
+    .bio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+    .bio-item { background: #161b27; border-radius: 4px; padding: 0.45rem 0.5rem; }
+    .bio-item .k { font-size: 0.65rem; color: #64748b; }
+    .bio-item .v { font-size: 0.82rem; font-weight: 600; margin-top: 0.1rem; }
+
+    .alerts { display: flex; flex-direction: column; gap: 0.3rem; }
+    .alert { font-size: 0.7rem; padding: 0.3rem 0.5rem; border-radius: 4px; }
+    .alert.warn { background: #451a03; color: #fdba74; }
+    .alert.ok   { background: #052e16; color: #86efac; }
+
+    .logs-box {
+      background: #08090d; border: 1px solid #1e2a3a;
+      border-radius: 6px; padding: 0.6rem;
+      font-family: monospace; font-size: 0.68rem; color: #64748b;
+      max-height: 120px; overflow-y: auto;
+      white-space: pre-wrap; display: none;
+    }
+    .logs-box.visible { display: block; }
+
+    /* ── VIEWER ── */
+    .viewer-wrap {
+      flex: 1; position: relative;
+      background: #08090d;
+    }
+    #viewer { width: 100%; height: 100%; }
+
+    .placeholder {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #1e2a3a; pointer-events: none; gap: 1rem;
+      text-align: center;
+    }
+    .placeholder svg { width: 72px; height: 72px; }
+    .placeholder p { font-size: 0.85rem; max-width: 240px; line-height: 1.5; }
+
+    .toolbar {
+      position: absolute; top: 1rem; right: 1rem;
+      display: none; gap: 0.4rem;
+    }
+    .toolbar.visible { display: flex; }
+    .tb-btn {
+      background: rgba(15,17,23,0.9); border: 1px solid #1e2a3a;
+      color: #94a3b8; border-radius: 4px; padding: 0.28rem 0.6rem;
+      font-size: 0.72rem; cursor: pointer; backdrop-filter: blur(4px);
+    }
+    .tb-btn:hover { color: #e2e8f0; border-color: #3b82f6; }
+    .tb-btn.active { color: #60a5fa; border-color: #2563eb; }
+
+    .legend {
+      position: absolute; bottom: 1rem; right: 1rem;
+      background: rgba(15,17,23,0.9); border: 1px solid #1e2a3a;
+      border-radius: 6px; padding: 0.65rem 0.9rem;
+      font-size: 0.7rem; display: none;
+      backdrop-filter: blur(4px);
+    }
+    .legend.visible { display: block; }
+    .legend-title { color: #94a3b8; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.72rem; }
+    .legend-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+    .source-tag {
+      position: absolute; top: 1rem; left: 1rem;
+      background: rgba(15,17,23,0.9); border: 1px solid #1e2a3a;
+      border-radius: 4px; padding: 0.25rem 0.6rem;
+      font-size: 0.68rem; color: #64748b; display: none;
+      backdrop-filter: blur(4px);
+    }
+    .source-tag.visible { display: block; }
+    .source-tag.real { color: #4ade80; border-color: #14532d; }
+
+    .spinner {
+      display: inline-block; width: 11px; height: 11px;
+      border: 2px solid #1e3a5f; border-top-color: #3b82f6;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 5px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>LocalFold Visualizer</h1>
+  <span>CESGA API Mock · AlphaFold2</span>
+</header>
+
+<div class="layout">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="panel">
+
+    <div>
+      <label>Proteína de ejemplo</label>
+      <select id="samplePicker" onchange="loadSample()">
+        <option value="">— Selecciona una proteína —</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Secuencia FASTA</label>
+      <textarea id="fasta" placeholder=">sp|P0CG47|UBC_HUMAN Ubiquitin&#10;MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"></textarea>
+    </div>
+
+    <div>
+      <label>Recursos HPC</label>
+      <div class="row">
+        <div class="field">
+          <label>GPUs</label>
+          <input type="number" id="gpus" value="1" min="0" max="4" />
+        </div>
+        <div class="field">
+          <label>CPUs</label>
+          <input type="number" id="cpus" value="8" min="1" max="64" />
+        </div>
+        <div class="field">
+          <label>RAM (GB)</label>
+          <input type="number" id="memory" value="32" min="1" max="256" />
+        </div>
+      </div>
+    </div>
+
+    <button class="submit" id="submitBtn" onclick="submitJob()">Predict &amp; Visualize</button>
+
+    <div class="status-box" id="statusBox">
+      <div class="status-row">
+        <span id="statusLabel">—</span>
+        <span class="badge" id="statusBadge">—</span>
+      </div>
+      <div id="jobIdLabel" style="font-size:0.67rem;color:#334155;margin-top:0.2rem;"></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="logs-box" id="logsBox"></div>
+
+    <div class="metrics" id="metrics">
+
+      <div class="card">
+        <div class="card-title">pLDDT — Confianza global</div>
+        <div class="plddt-score" id="plddtScore">—</div>
+        <div class="plddt-sub">Escala 0-100 · &gt;90 muy alta · &lt;50 baja</div>
+        <div class="seg-bar" id="plddtBar">
+          <div style="background:#1d4ed8;width:25%"></div>
+          <div style="background:#22c55e;width:25%"></div>
+          <div style="background:#f59e0b;width:25%"></div>
+          <div style="background:#ef4444;width:25%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.62rem;color:#334155;margin-top:0.25rem;">
+          <span>&gt;90</span><span>70-90</span><span>50-70</span><span>&lt;50</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Propiedades de secuencia</div>
+        <div class="bio-grid" id="bioGrid"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Estructura secundaria</div>
+        <div class="seg-bar" id="ssBar"></div>
+        <div id="ssLegend" style="display:flex;gap:0.8rem;font-size:0.67rem;color:#64748b;margin-top:0.35rem;flex-wrap:wrap;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Alertas</div>
+        <div class="alerts" id="alertsBox"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── VIEWER ── -->
+  <div class="viewer-wrap">
+
+    <div class="placeholder" id="placeholder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <p>Selecciona una proteína o pega una secuencia FASTA y pulsa Predict</p>
+    </div>
+
+    <div id="viewer"></div>
+
+    <div class="source-tag" id="sourceTag"></div>
+
+    <div class="toolbar" id="toolbar">
+      <button class="tb-btn active" id="btn-cartoon" onclick="setStyle('cartoon')">Cartoon</button>
+      <button class="tb-btn" id="btn-stick" onclick="setStyle('stick')">Stick</button>
+      <button class="tb-btn" id="btn-surface" onclick="setStyle('surface')">Surface</button>
+      <button class="tb-btn" onclick="viewer3d && viewer3d.zoomTo() && viewer3d.render()">Reset</button>
+    </div>
+
+    <div class="legend" id="legend">
+      <div class="legend-title">pLDDT (B-factor)</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#1d4ed8"></div><span>Muy alta &gt;90</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#22c55e"></div><span>Alta 70-90</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div><span>Media 50-70</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#ef4444"></div><span>Baja &lt;50</span></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Use local API (with CIF files) or remote Render
+const API = window.location.hostname === "localhost" || window.location.protocol === "file:"
+  ? "http://localhost:8000"
+  : "https://api-mock-cesga.onrender.com";
+let viewer3d = null;
+let pollInterval = null;
+let currentStyle = "cartoon";
+
+// UniProt → local CIF filename (served from FastAPI /structures/)
+const CIF_MAP = {
+  "P0CG47": "1UBQ.cif",  // Ubiquitin
+  "P0DP23": "1CLL.cif",  // Calmodulin
+  "P62805": "3C9C.cif",  // Histone H4
+  "P10599": "2TRX.cif",  // Thioredoxin
+  "P99999": "1CGO.cif",  // Cytochrome c
+  "P61769": "2D4F.cif",  // Beta-2-microglobulin
+  "P01308": "3I40.cif",  // Insulin
+  "P61626": "8K8M.cif",  // Lysozyme C Chicken
+  "P00695": "7XF6.cif",  // Lysozyme C Human
+  "P61823": "1KF5.cif",  // RNase A
+  "P00571": "4AKE.cif",  // Adenylate kinase
+  "P00441": "5YTU.cif",  // SOD1
+  "P04746": "1B2Y.cif",  // Alpha-amylase
+  "P06431": "4H4F.cif",  // Chymotrypsin C
+  "P69905": "1DKE.cif",  // Hemoglobin alpha
+  "P68871": "1BZ1.cif",  // Hemoglobin beta
+  "P02144": "1MBN.cif",  // Myoglobin
+  "P02768": "1AO6.cif",  // Serum albumin
+  "P42212": "1GFL.cif",  // GFP
+  "P12004": "1AXC.cif",  // PCNA
+  "P04637": "1TUP.cif",  // p53
+  "P00533": "2GS6.cif",  // EGFR kinase
+};
+
+// UniProt → RCSB PDB ID (fallback when local files not available)
+const PDB_MAP = {
+  "P0CG47": "1UBQ", "P0DP23": "1CLL", "P62805": "3C9C", "P10599": "2TRX",
+  "P99999": "1CGO", "P61769": "2D4F", "P01308": "3I40", "P61626": "8K8M",
+  "P00695": "7XF6", "P61823": "1KF5", "P00571": "4AKE", "P00441": "5YTU",
+  "P04746": "1B2Y", "P06431": "4H4F", "P69905": "1DKE", "P68871": "1BZ1",
+  "P02144": "1MBN", "P02768": "1AO6", "P42212": "1GFL", "P12004": "1AXC",
+  "P04637": "1TUP", "P00533": "2GS6",
+};
+
+// ── colour by B-factor (pLDDT) ─────────────────────────────────────────────
+function plddtColor(atom) {
+  const b = atom.b || 0;
+  if (b >= 90) return "#1d4ed8";
+  if (b >= 70) return "#22c55e";
+  if (b >= 50) return "#f59e0b";
+  return "#ef4444";
+}
+
+// ── load sample list ───────────────────────────────────────────────────────
+async function loadSamples() {
+  try {
+    // /proteins/ returns ProteinSummary (no fasta) — use protein_id for lazy fetch
+    const r = await fetch(`${API}/proteins/`);
+    const items = await r.json();
+    const sel = document.getElementById("samplePicker");
+    items.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.protein_id;          // used to fetch fasta on select
+      opt.dataset.uniprot = p.uniprot_id || "";
+      opt.textContent = `${p.protein_name} (${p.length} aa)`;
+      sel.appendChild(opt);
+    });
+  } catch(e) { console.warn("Could not load proteins:", e); }
+}
+
+async function loadSample() {
+  const sel = document.getElementById("samplePicker");
+  const proteinId = sel.value;
+  if (!proteinId) return;
+
+  sel.disabled = true;
+  try {
+    const r = await fetch(`${API}/proteins/${proteinId}`);
+    const p = await r.json();
+    document.getElementById("fasta").value = p.fasta_ready;
+  } catch(e) { console.warn("Could not load FASTA:", e); }
+  finally { sel.disabled = false; }
+}
+
+// ── submit job ─────────────────────────────────────────────────────────────
+async function submitJob() {
+  const fasta = document.getElementById("fasta").value.trim();
+  if (!fasta) { alert("Introduce una secuencia FASTA"); return; }
+  if (!fasta.startsWith(">")) { alert("La secuencia debe empezar con '>'"); return; }
+
+  clearPrevious();
+
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Enviando…';
+
+  try {
+    const r = await fetch(`${API}/jobs/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fasta_sequence: fasta,
+        fasta_filename: "sequence.fasta",
+        gpus: +document.getElementById("gpus").value,
+        cpus: +document.getElementById("cpus").value,
+        memory_gb: +document.getElementById("memory").value,
+      }),
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.detail || r.statusText); }
+    const job = await r.json();
+    setStatus(job.job_id, "PENDING", 10);
+    btn.innerHTML = '<span class="spinner"></span>Calculando…';
+    poll(job.job_id);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "Predict & Visualize";
+    alert("Error: " + e.message);
+  }
+}
+
+// ── polling ────────────────────────────────────────────────────────────────
+function poll(jobId) {
+  let progress = 10;
+  pollInterval = setInterval(async () => {
+    try {
+      const r = await fetch(`${API}/jobs/${jobId}/status`);
+      const d = await r.json();
+      if (d.status === "PENDING")   { progress = Math.min(progress+5, 30); setStatus(jobId, "PENDING", progress); }
+      if (d.status === "RUNNING")   { progress = Math.min(progress+12, 85); setStatus(jobId, "RUNNING", progress); }
+      if (d.status === "COMPLETED") { clearInterval(pollInterval); setStatus(jobId, "COMPLETED", 100); fetchOutputs(jobId); }
+      if (d.status === "FAILED")    { clearInterval(pollInterval); setStatus(jobId, "FAILED", 100);
+        resetBtn(); alert("Job fallido: " + (d.error_message || "Error")); }
+    } catch(e) { console.error(e); }
+  }, 2000);
+}
+
+// ── fetch outputs ──────────────────────────────────────────────────────────
+async function fetchOutputs(jobId) {
+  const r = await fetch(`${API}/jobs/${jobId}/outputs`);
+  const data = await r.json();
+
+  if (data.logs) {
+    const b = document.getElementById("logsBox");
+    b.textContent = data.logs; b.classList.add("visible");
+  }
+
+  const uniprot = data.protein_metadata?.uniprot_id;
+  const cifFile = CIF_MAP[uniprot];
+  const pdbId   = PDB_MAP[uniprot];
+  const mockPdb = data.structural_data?.pdb_file;
+  const conf    = data.structural_data?.confidence;
+
+  // Try real structure: local CIF → RCSB → AlphaFold DB
+  if (cifFile || pdbId || uniprot) {
+    const loaded = await tryRealStructure(cifFile, pdbId, uniprot);
+    if (loaded) { showMetrics(data); resetBtn(); return; }
+  }
+
+  // Fallback: render mock PDB from API
+  if (mockPdb) renderPDB(mockPdb, conf, false);
+  showMetrics(data);
+  resetBtn();
+}
+
+// ── load real structure: local CIF → RCSB → AlphaFold DB ─────────────────
+function tryRealStructure(cifFile, pdbId, uniprotId) {
+  return new Promise(resolve => {
+    let done = false;
+    const finish = (success, label) => {
+      if (done) return;
+      done = true;
+      if (!success) { resolve(false); return; }
+      const tag = document.getElementById("sourceTag");
+      tag.classList.add("visible", "real");
+      tag.textContent = "● " + label;
+      document.getElementById("placeholder").style.display = "none";
+      document.getElementById("toolbar").classList.add("visible");
+      document.getElementById("legend").classList.add("visible");
+      applyStyle("cartoon");
+      viewer3d.zoomTo();
+      viewer3d.render();
+      viewer3d.zoom(0.85, 600);
+      resolve(true);
+    };
+
+    const el = document.getElementById("viewer");
+    el.innerHTML = "";
+    viewer3d = $3Dmol.createViewer(el, { backgroundColor: "0x08090d", antialias: true });
+
+    const tryRCSB = () => {
+      if (pdbId) {
+        $3Dmol.download("pdb:" + pdbId, viewer3d, {}, (m) => {
+          if (m) finish(true, "Estructura experimental · RCSB " + pdbId);
+          else tryAlphaFold();
+        });
+      } else tryAlphaFold();
+    };
+
+    const tryAlphaFold = () => {
+      if (uniprotId) {
+        viewer3d.clear();
+        $3Dmol.download("af:" + uniprotId, viewer3d, {}, (m) => {
+          finish(!!m, "Estructura AlphaFold2 · " + uniprotId);
+        });
+      } else finish(false);
+    };
+
+    if (cifFile) {
+      // Try local CIF served by FastAPI
+      fetch(`${API}/structures/${cifFile}`)
+        .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+        .then(text => {
+          viewer3d.addModel(text, "cif");
+          finish(true, "Estructura experimental · " + cifFile.replace(".cif",""));
+        })
+        .catch(() => tryRCSB());
+    } else {
+      tryRCSB();
+    }
+
+    setTimeout(() => finish(false), 15000);
+  });
+}
+
+// ── render PDB ─────────────────────────────────────────────────────────────
+function renderPDB(pdbText, confidence, isReal) {
+  document.getElementById("placeholder").style.display = "none";
+  document.getElementById("toolbar").classList.add("visible");
+  document.getElementById("legend").classList.add("visible");
+
+  const tag = document.getElementById("sourceTag");
+  tag.classList.add("visible");
+  if (isReal) {
+    tag.classList.add("real");
+    tag.textContent = "● Estructura real · AlphaFold DB";
+  } else {
+    tag.textContent = "● Estructura simulada · CESGA API";
+  }
+
+  const el = document.getElementById("viewer");
+  el.innerHTML = "";
+  viewer3d = $3Dmol.createViewer(el, { backgroundColor: "0x08090d", antialias: true });
+
+  viewer3d.addModel(pdbText, "pdb");
+  applyStyle("cartoon");
+  viewer3d.zoomTo();
+  viewer3d.render();
+  viewer3d.zoom(0.85, 500);
+}
+
+// ── styles ─────────────────────────────────────────────────────────────────
+function applyStyle(style) {
+  if (!viewer3d) return;
+  viewer3d.setStyle({}, {});
+
+  if (style === "cartoon") {
+    viewer3d.setStyle({}, { cartoon: { colorfunc: plddtColor, thickness: 0.4 } });
+  } else if (style === "stick") {
+    viewer3d.setStyle({}, { stick: { colorscheme: "Jmol", radius: 0.15 } });
+    viewer3d.setStyle({ atom: "CA" }, { sphere: { colorscheme: "Jmol", radius: 0.4 } });
+  } else if (style === "surface") {
+    viewer3d.setStyle({}, { cartoon: { colorfunc: plddtColor, opacity: 0.4, thickness: 0.4 } });
+    viewer3d.addSurface($3Dmol.SurfaceType.VDW, {
+      opacity: 0.65,
+      colorfunc: plddtColor,
+    });
+  }
+  viewer3d.render();
+}
+
+function setStyle(style) {
+  currentStyle = style;
+  ["cartoon","stick","surface"].forEach(s => {
+    document.getElementById("btn-"+s)?.classList.toggle("active", s === style);
+  });
+  applyStyle(style);
+}
+
+// ── metrics ────────────────────────────────────────────────────────────────
+function showMetrics(data) {
+  const conf = data.structural_data?.confidence || {};
+  const bio  = data.biological_data || {};
+  const seq  = bio.sequence_properties || {};
+
+  // pLDDT
+  const mean = conf.plddt_mean;
+  if (mean !== undefined) {
+    const el = document.getElementById("plddtScore");
+    el.textContent = mean.toFixed(1);
+    el.style.color = mean >= 90 ? "#1d4ed8" : mean >= 70 ? "#22c55e" : mean >= 50 ? "#f59e0b" : "#ef4444";
+    const h = conf.plddt_histogram || {};
+    const tot = (h.very_high||0)+(h.high||0)+(h.medium||0)+(h.low||0) || 1;
+    const bars = document.getElementById("plddtBar").children;
+    bars[0].style.width = ((h.very_high||0)/tot*100)+"%";
+    bars[1].style.width = ((h.high||0)/tot*100)+"%";
+    bars[2].style.width = ((h.medium||0)/tot*100)+"%";
+    bars[3].style.width = ((h.low||0)/tot*100)+"%";
+  }
+
+  // Bio grid
+  const items = [
+    ["Longitud",     seq.length ? seq.length+" aa" : "—"],
+    ["Peso mol.",    seq.molecular_weight_kda ? seq.molecular_weight_kda+" kDa" : "—"],
+    ["Solubilidad",  bio.solubility_score !== undefined ? bio.solubility_score.toFixed(0)+"%" : "—"],
+    ["Estabilidad",  bio.stability_status || "—"],
+    ["Cisteínas",    seq.cysteine_residues ?? "—"],
+    ["Aromáticos",   seq.aromatic_residues ?? "—"],
+  ];
+  document.getElementById("bioGrid").innerHTML = items.map(([k,v]) =>
+    `<div class="bio-item"><div class="k">${k}</div><div class="v">${v}</div></div>`
+  ).join("");
+
+  // Secondary structure
+  const ss = bio.secondary_structure_prediction;
+  if (ss) {
+    document.getElementById("ssBar").innerHTML = `
+      <div style="background:#818cf8;width:${ss.helix_percent}%;min-width:2px"></div>
+      <div style="background:#34d399;width:${ss.strand_percent}%;min-width:2px"></div>
+      <div style="background:#94a3b8;width:${ss.coil_percent}%;min-width:2px"></div>
+    `;
+    document.getElementById("ssLegend").innerHTML = `
+      <span><span style="color:#818cf8">■</span> Hélice α ${ss.helix_percent}%</span>
+      <span><span style="color:#34d399">■</span> Lámina β ${ss.strand_percent}%</span>
+      <span><span style="color:#94a3b8">■</span> Coil ${ss.coil_percent}%</span>
+    `;
+  }
+
+  // Alerts
+  const alerts = [
+    ...(bio.toxicity_alerts||[]).map(a => ({t:a,c:"warn"})),
+    ...(bio.allergenicity_alerts||[]).map(a => ({t:a,c:"warn"})),
+  ];
+  document.getElementById("alertsBox").innerHTML = alerts.length
+    ? alerts.map(a => `<div class="alert ${a.c}">${a.t}</div>`).join("")
+    : '<div class="alert ok">Sin alertas detectadas</div>';
+
+  document.getElementById("metrics").classList.add("visible");
+}
+
+// ── helpers ────────────────────────────────────────────────────────────────
+function setStatus(jobId, status, progress) {
+  const box = document.getElementById("statusBox");
+  box.classList.add("visible");
+  const labels = { PENDING:"En cola…", RUNNING:"Calculando…", COMPLETED:"Completado ✓", FAILED:"Error ✗" };
+  document.getElementById("statusLabel").textContent = labels[status] || status;
+  const badge = document.getElementById("statusBadge");
+  badge.textContent = status; badge.className = "badge "+status;
+  document.getElementById("jobIdLabel").textContent = jobId;
+  document.getElementById("progressFill").style.width = progress+"%";
+}
+
+function resetBtn() {
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = false; btn.textContent = "Predict & Visualize";
+}
+
+function clearPrevious() {
+  clearInterval(pollInterval);
+  ["statusBox","logsBox","metrics"].forEach(id => document.getElementById(id).classList.remove("visible"));
+  document.getElementById("legend").classList.remove("visible");
+  document.getElementById("toolbar").classList.remove("visible");
+  document.getElementById("sourceTag").classList.remove("visible","real");
+  document.getElementById("placeholder").style.display = "flex";
+  if (viewer3d) { viewer3d.clear(); viewer3d = null; }
+}
+
+loadSamples();
+</script>
+</body>
+</html>

@@ -53,32 +53,65 @@ class MockDataService:
     
     @staticmethod
     def generate_pdb_structure(sequence: str) -> str:
-        """Generate a minimal realistic PDB file."""
-        lines = []
-        lines.append("HEADER    SIMULATED ALPHAFOLD STRUCTURE")
-        lines.append(f"TITLE     AlphaFold2 Simulation for {len(sequence)} residues")
-        lines.append(f"REMARK   1 REFERENCE 1")
-        lines.append(f"REMARK   2 RESOLUTION.    NONE.")
-        lines.append(f"ATOM             X       Y       Z     CONF")
-        
-        # Simple alpha-helix-like coordinates
+        """Generate a PDB file with full backbone (N, CA, C, O) for proper 3D rendering."""
+        AA3 = {
+            'A':'ALA','C':'CYS','D':'ASP','E':'GLU','F':'PHE','G':'GLY','H':'HIS',
+            'I':'ILE','K':'LYS','L':'LEU','M':'MET','N':'ASN','P':'PRO','Q':'GLN',
+            'R':'ARG','S':'SER','T':'THR','V':'VAL','W':'TRP','Y':'TYR',
+        }
+
         residues = [line.strip() for line in sequence.split('\n') if line.strip() and not line.startswith('>')]
-        seq = ''.join(residues)
-        
+        seq = ''.join(residues)[:384]
+
+        lines = [
+            "HEADER    SIMULATED ALPHAFOLD2 STRUCTURE",
+            f"TITLE     AlphaFold2 prediction — {len(seq)} residues",
+            "REMARK   1 MODEL  1",
+            "REMARK   2 pLDDT scores encoded in B-factor column",
+        ]
+
+        # Alpha-helix parameters
+        r     = 2.3          # helix radius (Å)
+        h     = 1.5          # rise per residue (Å)
+        omega = np.radians(100)  # rotation per residue
+
         atom_count = 1
-        for i, aa in enumerate(seq[:384]):  # Limit to 384 residues as AlphaFold does
-            # Simple helix coordinates
-            x = 10 * np.cos(i * 0.1)
-            y = i * 1.5
-            z = 10 * np.sin(i * 0.1)
+        for i, aa in enumerate(seq):
+            theta = i * omega
+            res3  = AA3.get(aa.upper(), 'ALA')
             plddt = random.uniform(50, 95)
-            
-            lines.append(
-                f"ATOM  {atom_count:5d}  CA  ALA {i+1:4d}    "
-                f"{x:8.3f}{y:8.3f}{z:8.3f}  1.00{plddt:6.2f}           C"
-            )
-            atom_count += 1
-        
+
+            # CA on ideal helix
+            x_ca = r * np.cos(theta)
+            y_ca = h * i
+            z_ca = r * np.sin(theta)
+
+            # N: slightly before CA along helix tangent + inward
+            x_n = x_ca + 0.9 * np.cos(theta - np.radians(30)) - 0.3 * np.sin(theta)
+            y_n = y_ca - 0.55
+            z_n = z_ca + 0.9 * np.sin(theta - np.radians(30)) + 0.3 * np.cos(theta)
+
+            # C: slightly after CA along helix tangent
+            x_c = x_ca + 0.9 * np.cos(theta + np.radians(30)) + 0.3 * np.sin(theta)
+            y_c = y_ca + 0.55
+            z_c = z_ca + 0.9 * np.sin(theta + np.radians(30)) - 0.3 * np.cos(theta)
+
+            # O: carbonyl, pointing outward from helix axis
+            x_o = x_c + 1.1 * np.cos(theta + np.radians(90))
+            y_o = y_c + 0.25
+            z_o = z_c + 1.1 * np.sin(theta + np.radians(90))
+
+            def atom_line(serial, name, x, y, z, b):
+                return (f"ATOM  {serial:5d} {name:<4s} {res3} A{i+1:4d}    "
+                        f"{x:8.3f}{y:8.3f}{z:8.3f}  1.00{b:6.2f}           C")
+
+            lines.append(atom_line(atom_count,   " N  ", x_n,  y_n,  z_n,  plddt))
+            lines.append(atom_line(atom_count+1, " CA ", x_ca, y_ca, z_ca, plddt))
+            lines.append(atom_line(atom_count+2, " C  ", x_c,  y_c,  z_c,  plddt))
+            lines.append(atom_line(atom_count+3, " O  ", x_o,  y_o,  z_o,  plddt))
+            atom_count += 4
+
+        lines.append("TER")
         lines.append("END")
         return "\n".join(lines)
     
