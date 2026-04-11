@@ -192,7 +192,7 @@
     <div>
       <label>Proteína de ejemplo</label>
       <select id="samplePicker" onchange="loadSample()">
-        <option value="">— Selecciona una proteína —</option>
+        <option value="">⏳ Cargando proteínas…</option>
       </select>
     </div>
 
@@ -355,19 +355,28 @@ function plddtColor(atom) {
 
 // ── load sample list ───────────────────────────────────────────────────────
 async function loadSamples() {
-  try {
-    // /proteins/ returns ProteinSummary (no fasta) — use protein_id for lazy fetch
-    const r = await fetch(`${API}/proteins/`);
-    const items = await r.json();
-    const sel = document.getElementById("samplePicker");
-    items.forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p.protein_id;          // used to fetch fasta on select
-      opt.dataset.uniprot = p.uniprot_id || "";
-      opt.textContent = `${p.protein_name} (${p.length} aa)`;
-      sel.appendChild(opt);
-    });
-  } catch(e) { console.warn("Could not load proteins:", e); }
+  const sel = document.getElementById("samplePicker");
+  let attempts = 0;
+  while (attempts < 5) {
+    try {
+      const r = await fetch(`${API}/proteins/`, { signal: AbortSignal.timeout(12000) });
+      if (!r.ok) throw new Error(r.status);
+      const items = await r.json();
+      sel.innerHTML = '<option value="">— Selecciona una proteína —</option>';
+      items.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.protein_id;
+        opt.textContent = `${p.protein_name} (${p.length} aa)`;
+        sel.appendChild(opt);
+      });
+      return;
+    } catch(e) {
+      attempts++;
+      sel.innerHTML = `<option value="">⏳ Conectando con API… (${attempts}/5)</option>`;
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  }
+  sel.innerHTML = '<option value="">❌ API no disponible — pega el FASTA manualmente</option>';
 }
 
 async function loadSample() {
