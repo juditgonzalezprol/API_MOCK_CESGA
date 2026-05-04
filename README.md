@@ -103,38 +103,6 @@ chmod +x start_api.sh
 | **Sin hibernación** | Si el servicio se "duerme" por inactividad, la primera petición tarda 15–60 segundos en responder. Eso rompe cualquier frontend que haga polling de estado. |
 | **RAM ≥ 512 MB** | numpy (usado para generar matrices PAE y scores pLDDT) ocupa ~100–150 MB solo al importarse. Con FastAPI + SQLAlchemy, el proceso fácilmente supera 250 MB. |
 
----
-
-### Opción A — ngrok (solo para demo en vivo, no para hosting)
-
-ngrok **no es una plataforma de hosting**. Es un túnel que expone tu ordenador local a internet. La API sigue corriendo en tu máquina.
-
-```bash
-# 1. Instalar ngrok (Mac)
-brew install ngrok
-
-# 2. Arrancar la API en local
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# 3. En otra terminal, abrir el túnel
-ngrok http 8000
-# → Te da una URL pública: https://abc123.ngrok-free.app
-```
-
-**Cuándo usarlo:** presentación en un hackathon donde tú estás delante del ordenador y la demo dura 1–2 horas.
-
-**Por qué NO sirve para hosting permanente:**
-
-- ⚠️ El plan gratuito muestra una **página de advertencia interstitial** a quien visite la URL — esto rompe las llamadas directas de API desde un frontend JavaScript.
-- La URL cambia cada vez que reinicias ngrok (plan gratuito). No hay URL fija.
-- Si tu ordenador se apaga, se cierra el portátil o se va a dormir, la API desaparece.
-- El plan gratuito tiene límite de 20.000 peticiones/mes.
-
----
-
-### Opción B — Railway Hobby ($5/mes) ⭐ Recomendada
-
-**La opción más sencilla** con los tres requisitos cubiertos. Railway detecta automáticamente proyectos Python/FastAPI y usa el `Dockerfile` incluido.
 
 > **Nota sobre el tier gratuito de Railway:** el plan gratuito obliga a modo serverless (el app se duerme tras 10 min de inactividad). Además, el crédito gratuito es solo $1/mes tras el periodo de prueba inicial. Para uso real, el plan Hobby a $5/mes es necesario — y los $5 de crédito incluido cubren el coste de este app.
 
@@ -185,83 +153,7 @@ CORS_ORIGINS=["*"]
 
 En el dashboard: **tu servicio → Settings → Serverless → desactivar**. Así el app no se duerme nunca.
 
-**Resumen Railway Hobby:**
-
-| | |
-|---|---|
-| Precio | $5/mes (crédito de $5 incluido, app pequeña = ~$0 extra) |
-| SQLite persistente | ✅ Con volumen montado |
-| Hibernación | ❌ Desactivable con plan Hobby |
-| RAM | 512 MB–8 GB (pay-per-use, ~$1.50/mes por 512 MB) |
-| Complejidad de setup | Baja — CLI + dashboard web |
-
----
-
-### Opción C — Fly.io (~$3.50–5.50/mes)
-
-Fly.io es técnicamente excelente para este caso de uso: sin hibernación por defecto, volúmenes persistentes, y documentación oficial específica para SQLite. Algo más complejo de configurar que Railway.
-
-> **Nota sobre el tier gratuito de Fly.io:** el tier gratuito fue **eliminado en octubre de 2024** para nuevos usuarios. Requiere tarjeta de crédito y es de pago desde el primer recurso creado.
-
-#### Pasos de despliegue
-
-```bash
-# 1. Instalar flyctl
-# Mac:
-brew install flyctl
-# Linux:
-curl -L https://fly.io/install.sh | sh
-
-# 2. Login
-fly auth login
-
-# 3. Desde la carpeta del proyecto (detecta el Dockerfile automáticamente)
-fly launch
-# Nombre: cesga-api (o el que quieras)
-# Región: ams (Amsterdam) o mad (Madrid) para latencia mínima desde España
-# No crear base de datos Postgres (usamos SQLite)
-
-# 4. Crear volumen persistente para SQLite
-fly volumes create cesga_data --size 1 --region ams
-
-# 5. Editar fly.toml para montar el volumen
-```
-
-Añade esto al `fly.toml` generado:
-
-```toml
-[mounts]
-  source = "cesga_data"
-  destination = "/app/data"
-```
-
-```bash
-# 6. Desplegar
-fly deploy
-```
-
-#### Variables de entorno en Fly.io
-
-```bash
-fly secrets set DEBUG=False
-fly secrets set LOG_LEVEL=WARNING
-fly secrets set DATABASE_URL="sqlite:////app/data/cesga_simulator.db"
-fly secrets set CORS_ORIGINS='["*"]'
-```
-
-**Resumen Fly.io:**
-
-| | |
-|---|---|
-| Precio | ~$3.50–5.50/mes (VM 512 MB + 1 GB volumen) |
-| SQLite persistente | ✅ Con volumen montado |
-| Hibernación | ❌ Sin hibernación por defecto |
-| RAM | 256 MB–2 GB (la de 256 MB es insuficiente para numpy — usa 512 MB) |
-| Complejidad de setup | Media — flyctl CLI + editar fly.toml |
-
----
-
-### Opción D — VPS propio con Docker (máximo control, ~$4/mes)
+### Opción B — VPS propio con Docker
 
 Para quien quiera control total. El VPS más barato del mercado (Hetzner CX11: €3.29/mes, 1 vCPU, 2 GB RAM) es más que suficiente para esta API.
 
@@ -353,38 +245,6 @@ docker compose down                 # parar
 docker compose build && docker compose up -d   # actualizar tras cambios
 docker compose ps                   # estado
 ```
-
-**Resumen VPS:**
-
-| | |
-|---|---|
-| Precio | ~$4/mes (Hetzner CX11 más barato del mercado) |
-| SQLite persistente | ✅ Fichero en el disco del servidor |
-| Hibernación | ❌ Nunca (servidor siempre encendido) |
-| RAM | 2 GB (muy holgado) |
-| Complejidad de setup | Alta — requiere administrar Linux, nginx, certbot |
-
----
-
-### Comparativa final
-
-| | ngrok (gratis) | Railway Hobby ($5/mes) | Fly.io (~$4/mes) | Render gratis | VPS Hetzner (~$4/mes) |
-|---|---|---|---|---|---|
-| ¿Requiere tarjeta? | No | Sí | Sí | Sí ($1 de pre-autorización) | Sí |
-| SQLite persistente | ✅ (local) | ✅ Con volumen | ✅ Con volumen | ❌ **Se borra al reiniciar** | ✅ Disco del servidor |
-| Sin hibernación | ❌ (depende de tu PC) | ✅ Desactivable | ✅ Por defecto | ❌ Duerme a los 15 min | ✅ Siempre activo |
-| Cold start | N/A | ❌ Solo si hibernación ON | ❌ | ✅ **~60 segundos** | ❌ |
-| RAM para numpy | Tu RAM | 512 MB–8 GB | 512 MB (mín. recomendado) | 512 MB | 2 GB |
-| Simplicidad setup | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
-| ¿Sirve para esta API? | Solo demos en vivo | ✅ **Sí** | ✅ **Sí** | ❌ No (sin disco persistente) | ✅ **Sí** |
-
-> **Render gratuito queda descartado** para esta API: sin disco persistente, la base de datos SQLite se borra en cada reinicio o ciclo de hibernación. No hay forma de mantener los jobs entre sesiones.
-
-**Recomendación por caso de uso:**
-- **Hackathon / demo rápida (horas):** ngrok desde tu ordenador
-- **Desarrollo compartido / hackathon de días:** Railway Hobby ($5/mes), setup en 15 minutos
-- **Producción ligera con mínimo coste:** Fly.io (~$4/mes) o Hetzner VPS (~$4/mes)
-
 ---
 
 ## Variables de entorno — referencia completa
